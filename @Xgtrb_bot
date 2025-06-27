@@ -1,0 +1,66 @@
+8076971089:AAGhHvNI9gwO5d
+wCMuAjPJBgJGlzRBXXmuw
+
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters, ConversationHandler, CallbackContext
+
+# States
+CHOOSING, EDITOR_PORTFOLIO, CLIENT_NAME, CLIENT_PHONE = range(4)
+
+# Start Command
+def start(update: Update, context: CallbackContext):
+    keyboard = [
+        [InlineKeyboardButton("🧑‍🎨 Editor", callback_data='editor')],
+        [InlineKeyboardButton("🧑‍💼 Client", callback_data='client')]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    update.message.reply_text("👋 Welcome to the Bot!\nChoose your role:", reply_markup=reply_markup)
+    return CHOOSING
+
+# When Editor or Client pressed
+def button(update: Update, context: CallbackContext):
+    query = update.callback_query
+    query.answer()
+
+    if query.data == 'editor':
+        query.edit_message_text("📝 Please send your *Portfolio and Name*.", parse_mode='Markdown')
+        return EDITOR_PORTFOLIO
+
+    elif query.data == 'client':
+        query.edit_message_text("📞 Please send your *Name*.", parse_mode='Markdown')
+        return CLIENT_NAME
+
+# Handle Editor info
+def editor_info(update: Update, context: CallbackContext):
+    user = update.message.from_user
+    context.user_data['editor_info'] = update.message.text
+    update.message.reply_text(f"✅ Thanks! Here is Turbo Boss’s contact:\n👉 @YourEditorUsername")
+    return ConversationHandler.END
+
+# Handle Client name
+def client_name(update: Update, context: CallbackContext):
+    context.user_data['client_name'] = update.message.text
+    update.message.reply_text("📱 Now send your *Phone Number*.")
+    return CLIENT_PHONE
+
+# Handle Client phone number
+def client_phone(update: Update, context: CallbackContext):
+    context.user_data['client_phone'] = update.message.text
+    update.message.reply_text(f"✅ Thanks! Here is Turbo Boss’s contact:\n👉 @YourClientSupportUsername")
+    return ConversationHandler.END
+
+# Cancel
+def cancel(update: Update, context: CallbackContext):
+    update.message.reply_text('❌ Cancelled.')
+    return ConversationHandler.END
+
+def main():
+    updater = Updater("YOUR_BOT_TOKEN", use_context=True)
+    dp = updater.dispatcher
+
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler('start', start)],
+        states={
+            CHOOSING: [CallbackQueryHandler(button)],
+            EDITOR_PORTFOLIO: [MessageHandler(Filters.text & ~Filters.command, editor_info)],
+            CLIENT_NAME: [MessageHandler(Filters.text & ~
